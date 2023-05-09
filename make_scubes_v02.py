@@ -291,7 +291,7 @@ class SCubes(object):
 
     def get_zps(self, tile: str=None, zp_dir: str=None, zp_table: str=None):
         """ Load zero points."""
-        _dir = self.work_dir if zp_dir is None else zp_dir
+        _dir = self.data_dir if zp_dir is None else zp_dir
         tile = self.tiles[0] if tile is None else tile
         zp_table = self.zp_table if zp_table is None else zp_table
 
@@ -861,9 +861,9 @@ if __name__ == "__main__":
 
     scubes = SCubes()
 
-    scubes.work_dir = '/ssd/splus/S-cubes/'
-    scubes.data_dir = '/home/herpich/Documents/pos-doc/t80s/Dropbox/splus-cubes/data/'
-    scubes.zpcorr_dir = '/home/herpich/Documents/pos-doc/t80s/Dropbox/splus-cubes/data/zpcorr_idr3/'
+    scubes.work_dir = './S-cubes/'
+    scubes.data_dir = './splus-cubes/data/'
+    scubes.zpcorr_dir = './splus-cubes/data/zpcorr_idr3/'
     scubes.tiles_dir = os.path.join(scubes.work_dir, 'coadded')
 
     # # NGC1374
