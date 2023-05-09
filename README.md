@@ -1,2 +1,2 @@
 # splus-cubes
-Tools to produce cubes for S-PLUS
+Repository for the stamps and cubes from S-PLUS images
