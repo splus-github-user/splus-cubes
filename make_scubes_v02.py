@@ -54,28 +54,36 @@ initext = """
 
 
 def arg_parse():
+    """
+        Parse command line arguments for the program.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments.
+    """
     parser = ArgumentParser(usage="""\
     \n
     %prog [options] [input_file]""")
 
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
-                        default=False, help='Verbose output')
+                        default=False, help='Enable verbose output')
     parser.add_argument('-d', '--debug', action='store_true',
-                        dest='debug', default=False, help='Debug mode')
+                        dest='debug', default=False, help='Enable debug mode')
     parser.add_argument('-r', '--redo', action='store_true',
-                        dest='redo', default=False, help='Redo mode')
+                        dest='redo', default=False,
+                        help='Enable redo mode to overwrite final cubes')
     parser.add_argument('-c', '--clean', action='store_true',
                         dest='clean', default=False,
-                        help='Clean intermediate files')
+                        help='Clean intermediate files after processing')
     parser.add_argument('-f', '--force', action='store_true',
-                        dest='force', default=False, help='Force overwrite')
+                        dest='force', default=False,
+                        help='Force overwrite of existing files')
     parser.add_argument('-s', '--savestamps', action='store_true',
                         dest='savestamps', default=False, help='Save stamps')
     parser.add_argument('-b', '--bands', action='store',
                         dest='bands', default=['U', 'F378', 'F395', 'F410',
                                                'F430', 'G', 'F515', 'R',
                                                'F660', 'I', 'F861', 'Z'],
-                        help='S-PLUS bands')
+                        help='List of S-PLUS bands')
     parser.add_argument('-t', '--tile', action='store',
                         dest='tile', default=None,
                         help='Name of the S-PLUS tile')
@@ -90,7 +98,7 @@ def arg_parse():
                         help="Galaxy's Angular size in arcsec")
     parser.add_argument('-z', '--specz', action='store',
                         dest='specz', default=None, type=float,
-                        help="Galaxy's spectroscopic or photometric redshift")
+                        help="Spectroscopic or photometric redshift of the galaxy")
     parser.add_argument('-l', '--sizes', action='store',
                         dest='sizes', default=500, type=int,
                         help='Sizes of the cubes in pixels')
