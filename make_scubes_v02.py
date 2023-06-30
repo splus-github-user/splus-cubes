@@ -354,25 +354,26 @@ class Scubes(object):
                                        "{0}_{1}_{2}x{2}_{3}.fits".format(
                                            name, field_name, size, 'detection'))
                 if not os.path.isfile(doutput):
-                    # if os.path.isfile(os.path.join(tile_dir, field_name + '_detection.fits')):
-                    #     file2use = os.path.join(
-                    #         tile_dir, field_name + '_detection.fits')
-                    # elif os.path.isfile(os.path.join(tile_dir, field_name + '_detection.fits.fz')):
-                    #     file2use = os.path.join(
-                    #         tile_dir, field_name + '_detection.fits.fz')
-                    # else:
-                    Warning('Detection image not found. Using rSDSS...')
-                    file2use = os.path.join(
-                        self.tile_dir, field_name + '_R_swp.fz')
-                    # d = fits.open(file2use)[1]
-                    dheader = fits.getheader(os.path.join(
-                        tile_dir, field_name + '_detection.fits'), 1)
-                    ddata = fits.getdata(file2use, 1)
+                    if os.path.isfile(os.path.join(tile_dir, field_name + '_detection.fits')):
+                        file2use = os.path.join(
+                            tile_dir, field_name + '_detection.fits')
+                    elif os.path.isfile(os.path.join(tile_dir, field_name + '_detection.fits.fz')):
+                        file2use = os.path.join(
+                            tile_dir, field_name + '_detection.fits.fz')
+                    else:
+                        Warning('Detection image not found. Using rSDSS...')
+                        file2use = os.path.join(
+                            self.tile_dir, field_name + '_R_swp.fz')
+                    d = fits.open(file2use)[1]
+                    dheader = d.header
+                    ddata = d.data
                     wcs = WCS(dheader)
                     xys = wcs.all_world2pix(fcoords.ra, fcoords.dec, 1)
                     dcutout = Cutout2D(ddata, position=fcoords,
                                        size=size * u.pixel, wcs=wcs)
                     hdu = fits.ImageHDU(dcutout.data)
+                    print(dcutout.wcs.to_header())
+                    print(dheader)
                     for key in header_keys:
                         if key in dheader:
                             hdu.header[key] = dheader[key]
