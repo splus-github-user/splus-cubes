@@ -12,7 +12,12 @@
  ***
  Edited to add argparse functionality - 2023-06-28
 """
+
 from __future__ import print_function, division
+
+__version__ = "1.0.0"
+__author__ = 'Fabio R. Herpich'
+__email__ = 'fabio.herpich@ast.cam.ac.uk'
 
 import os
 import sys
@@ -38,18 +43,19 @@ import sewpy
 from astropy.visualization import make_lupton_rgb
 import matplotlib.pyplot as plt
 import datetime
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from photutils import DAOStarFinder
 
 warnings.simplefilter('ignore', category=FITSFixedWarning)
 
 initext = """
-    ===================================================================
-                    make_scubes
+    ==============================================================
+                          make_scubes.py
+                         ----------------
              This version is not yet completely debugged
              In case of crashes, please send the log to:
-                Herpich F. R. fabiorafaelh@gmail.com
-    ===================================================================
+                Herpich F. R. fabio.herpich@ast.cam.ac.uk
+    =============================================================
     """
 
 
@@ -60,9 +66,10 @@ def arg_parse():
     Returns:
         argparse.Namespace: Parsed command line arguments.
     """
-    parser = ArgumentParser(usage="""\
-    \n
-    %prog [options] [input_file]""")
+    parser = ArgumentParser(usage="""\n
+    make_scubes.py [options]""", description=initext,
+                            formatter_class=lambda prog:
+                            RawDescriptionHelpFormatter(prog, max_help_position=30))
 
     parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
                         default=False, help='Enable verbose output')
@@ -127,11 +134,20 @@ def arg_parse():
     parser.add_argument('-x', '--sextractor', action='store', dest='sextractor',
                         default='source-extractor',
                         help='Path to SExtractor executable')
+    parser.add_argument('-p', '--class_star', action='store', dest='class_star',
+                        default=0.25, type=float,
+                        help='SExtractor CLASS_STAR parameter for star/galaxy separation')
 
-    return parser.parse_args()
+    if (len(sys.argv) == 1) or (sys.argv[1] in ['-h', '--help']):
+        parser.print_help()
+        sys.exit(1)
+    else:
+        return parser.parse_args()
 
 
 class Scubes(object):
+    """Class to create the S-PLUS data cubes"""
+
     def __init__(self):
         """basic definitions"""
 
@@ -141,13 +157,13 @@ class Scubes(object):
         self.sizes = 100
         self.angsize = 50
         self.work_dir: str = os.getcwd()
-        self.data_dir: str = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                          'data/')
-        self.zpcorr_dir: str = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                            'data/zpcorr_idr3/')
+        self.data_dir: str = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 'data/')
+        self.zpcorr_dir: str = os.path.join(os.path.dirname(
+            os.path.realpath(__file__)), 'data/zpcorr_idr3/')
         self.tile_dir: str = 'None'
-        self.zp_table = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                     'iDR4_zero-points.csv')
+        self.zp_table = os.path.join(os.path.dirname(
+            os.path.realpath(__file__)), 'iDR4_zero-points.csv')
         self.specz = 0.005
 
         # SExtractor contraints
@@ -155,6 +171,7 @@ class Scubes(object):
         self.satur_level: float = 1600.0  # use 1600 for elliptical
         self.back_size: int = 54  # use 54 for elliptical or 256 for spiral
         self.detect_thresh = 1.1
+        self.class_star = 0.25
 
         # from Kadu's context
         self.ps = 0.55 * u.arcsec / u.pixel  # pyright: ignore
@@ -574,10 +591,10 @@ class Scubes(object):
         distance = np.sqrt(
             (ix - centralPixCoords[0])**2 + (iy - centralPixCoords[1])**2)
         expand = True
-        interaction = 1
+        iteraction = 1
         while expand:
             print('[%s]' % datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), ' - ',
-                  'Iteration number = ', interaction, '; angsize =', angsize)
+                  'Iteration number = ', iteraction, '; angsize =', angsize)
             innerMask = distance <= angsize
             diskMask = (distance > angsize) & (distance <= angsize + 5)
             outerMask = distance > angsize + 5
@@ -610,7 +627,7 @@ class Scubes(object):
             ax1.set_ylabel('Dec')
             ax1.legend(loc='upper left')
 
-            if diskPercs[1] <= outerPercs[1] + (outerPercs[1] - outerPercs[0]):
+            if diskPercs[1] <= (outerPercs[1] + (outerPercs[1] - outerPercs[0])):
                 path2fig: str = os.path.join(
                     galdir, "{0}_{1}_{2}x{2}_{3}.png".format(galaxy, tile, size, 'defCircle'))
                 print('[%s]' % datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), ' - ',
@@ -626,7 +643,7 @@ class Scubes(object):
                     plt.show()
                     raise ValueError(
                         'Iteration stopped. Angsize %.2f bigger than size %i' % (angsize, size / 2))
-                interaction += 1
+                iteraction += 1
 
         fmask = np.zeros(f[1].data.shape)
         fmask[distance <= angsize] = 1
@@ -679,7 +696,10 @@ class Scubes(object):
             (sewcat['table']['X_IMAGE'], sewcat['table']['Y_IMAGE']))
         radius = 3.0 * (sewcat['table']['FWHM_IMAGE'] / 0.55)
         sidelim = 80
-        mask = sewcat['table']['CLASS_STAR'] > 0.1
+
+        print('[%s]' % datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), ' - ',
+              'Using CLASS_STAR > %.2f as star/galaxy separator...' % self.class_star)
+        mask = sewcat['table']['CLASS_STAR'] > self.class_star
         mask &= (sewcat['table']['X_IMAGE'] > sidelim)
         mask &= (sewcat['table']['X_IMAGE'] < fdata.shape[0] - sidelim)
         mask &= (sewcat['table']['Y_IMAGE'] > sidelim)
