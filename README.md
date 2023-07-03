@@ -57,8 +57,8 @@ python3 make_scubes_v02.py --help
 - To create a data cube for a specific galaxy using a S-PLUS field:
 
 ```bash
-python3 make_scubes_v02.py -v -t 'SPLUS-s28s33' -g 'NGC1365' -l 2400 -i '03:33:36.458 -36:08:26.37' -a 660 -z 0.005476 -p 0.4
+python3 make_scubes_v02.py -v -t 'SPLUS-s28s33' -g 'NGC1365' -l 2400 -i '03:33:36.458 -36:08:26.37' -a 480 -z 0.005476 -p 0.4
 ```
 
   - This command will create a cube for the galaxy NGC1365 from the images of the field SPLUS-s28s33. The cube will have 2400x2400 pixels and will be centred  RA = 03:33:36.458 Dec = -36:08:26.37.
-    The the major circle to mask the galaxy will start with rasiu 660 arcsec and the CLASS_STAR cut is 0.4
+    The the major circle to mask the galaxy will start with circle of diameter 480 arcsec and the CLASS_STAR cut is 0.4

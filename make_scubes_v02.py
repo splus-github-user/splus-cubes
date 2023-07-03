@@ -822,6 +822,7 @@ class Scubes(object):
             print('[%s]' % datetime.datetime.now().strftime(
                 '%Y-%m-%dT%H:%M:%S'), ' - ', 'Saving fig to', path2fig)
             plt.savefig(path2fig, format='png', dpi=180)
+            plt.close()
 
         return fitsmask
 
@@ -1001,7 +1002,7 @@ class Scubes(object):
                             maskstars = maskstars
                             mask_sexstars = False
                         elif q1 == 'q':
-                            Warning('leaving!')
+                            Warning('Exiting!')
                             return
                         elif q1 == '':
                             mask_sexstars = True
