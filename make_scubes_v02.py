@@ -97,7 +97,7 @@ def arg_parse():
     parser.add_argument('-g', '--galaxy', action='store',
                         dest='galaxy', default=None,
                         help="Galaxy's name")
-    parser.add_argument('-i', '--coord', action='store', nargs=1,
+    parser.add_argument('-i', '--coords', action='store', nargs=1,
                         type=str, dest='coords', default=None,
                         help="Galaxy's coordinates in 'hh:mm:ss.ss dd:mm:ss.ss'")
     parser.add_argument('-a', '--angsize', action='store',
@@ -132,11 +132,20 @@ def arg_parse():
                         help='Directory where the S-PLUS images are stored.\n'
                         'Default is work_dir/tile')
     parser.add_argument('-x', '--sextractor', action='store', dest='sextractor',
-                        default='source-extractor',
+                        default='sex',
                         help='Path to SExtractor executable')
     parser.add_argument('-p', '--class_star', action='store', dest='class_star',
                         default=0.25, type=float,
                         help='SExtractor CLASS_STAR parameter for star/galaxy separation')
+    parser.add_argument('--satur_level', action='store', dest='satur_level',
+                        default=1600.0, type=float,
+                        help='Saturation level for the png images. Default is 1600.0')
+    parser.add_argument('--back_size', action='store', dest='back_size',
+                        default=64, type=int,
+                        help='Background mesh size for SExtractor. Default is 64')
+    parser.add_argument('--detect_thresh', action='store', dest='detect_thresh',
+                        default=1.1, type=float,
+                        help='Detection threshold for SExtractor. Default is 1.1')
 
     if (len(sys.argv) == 1) or (sys.argv[1] in ['-h', '--help']):
         parser.print_help()
@@ -148,35 +157,41 @@ def arg_parse():
 class Scubes(object):
     """Class to create the S-PLUS data cubes"""
 
-    def __init__(self):
+    def __init__(self, args):
         """basic definitions"""
 
-        self.galaxy = 'NGC1087'
-        self.coords = ['02:46:25.15', '-00:29:55.45']
-        self.tile = 'STRIPE82-0059'
-        self.sizes = 100
-        self.angsize = 50
-        self.work_dir: str = os.getcwd()
+        self.verbose = args.verbose
+        self.debug = args.debug
+        self.redo = args.redo
+        self.clean = args.clean
+        self.force = args.force
+        self.savestamps = args.savestamps
+        self.bands = args.bands
+        self.tile = args.tile
+        self.galaxy = args.galaxy
+        self.coords = args.coords
+        self.angsize = args.angsize
+        self.specz = args.specz
+        self.sizes = args.sizes
+        self.work_dir = args.work_dir
+        self.output_dir = args.output_dir
         self.data_dir: str = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), 'data/')
         self.zpcorr_dir: str = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), 'data/zpcorr_idr3/')
-        self.tile_dir: str = 'None'
         self.zp_table = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), 'iDR4_zero-points.csv')
-        self.specz = 0.005
+        self.tile_dir: str = os.path.join(self.work_dir, self.tile)
 
         # SExtractor contraints
-        self.sexpath = '/home/herpich/bin/sextractor/src/sex'
-        self.satur_level: float = 1600.0  # use 1600 for elliptical
-        self.back_size: int = 54  # use 54 for elliptical or 256 for spiral
-        self.detect_thresh = 1.1
-        self.class_star = 0.25
+        self.sexpath = args.sextractor
+        self.class_star = args.class_star
+        self.satur_level: float = args.satur_level  # use 1600 for elliptical
+        self.back_size: int = args.back_size  # use 54 for elliptical or 256 for spiral
+        self.detect_thresh = args.detect_thresh
 
         # from Kadu's context
         self.ps = 0.55 * u.arcsec / u.pixel  # pyright: ignore
-        self.bands = ['U', 'F378', 'F395', 'F410', 'F430', 'G', 'F515', 'R',
-                      'F660', 'I', 'F861', 'Z']
         self.narrow_bands = ['F378', 'F395',
                              'F410', 'F430', 'F515', 'F660', 'F861']
         self.broad_bands = ['U', 'G', 'R', 'I', 'Z']
@@ -1034,7 +1049,7 @@ if __name__ == "__main__":
     path2workdir = os.getcwd()
     sys.path.append(path_root)
     args = arg_parse()
-    scubes = Scubes()
+    scubes = Scubes(args)
 
     for key, value in args.__dict__.items():
         setattr(scubes, key, value)
