@@ -693,10 +693,10 @@ class Scubes(object):
         centralPixCoords = sky2pix(galcoords, wcs)
 
         fdata = ddata.copy()
-        constraints = ddata > abs(np.percentile(ddata, 2.3))
-        fmask = np.zeros(ddata.shape)
-        fmask[constraints] = 1
-        fdata *= fmask
+        # constraints = ddata > 0  # abs(np.percentile(ddata, 2.3))
+        # fmask = np.zeros(ddata.shape)
+        # fmask[constraints] = 1
+        # fdata *= fmask
 
         # calculate big circle
         print('[%s]' % datetime.datetime.now().strftime(
@@ -809,6 +809,12 @@ class Scubes(object):
         # create the mask
         fitsmask = f.copy()
         fitsmask[1].data = np.zeros(maskeddata.shape)
+        # TODO: here is the problem, the mask is not created correctly
+        # using the mask to create a boolean mask dont allow the consideratn of the data values
+        # need to use the constraints from the beggining to properly define the bad reagions
+        # another thing that is not working correctly is the mask of the sources.
+        # They need to have a differente flag to diferentiate from the main circle
+        raise NotImplementedError('The mask is not being created correctly')
         fitsmask[1].data[maskeddata > 0] = 1
         # draw gray scaled mask
         ax4.imshow(fitsmask[1].data, cmap='Greys_r', origin='lower')
