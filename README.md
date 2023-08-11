@@ -5,6 +5,7 @@ Repository for the stamps and cubes from S-PLUS images
 
 - Python 3.7+
 - SExtractor installed either locally or system-wide
+- `sewpy` needs to be installed separately following the [authors instruction](https://sewpy.readthedocs.io/en/latest/installation.html)
 
 ## Installation
 
