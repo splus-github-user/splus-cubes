@@ -662,7 +662,7 @@ class Scubes(object):
 
         fmask = np.zeros(f[1].data.shape)
         fmask[distance <= angsize] = 1
-        return circregion, fdata * fmask
+        return circregion, fmask
 
     def calc_masks(self, galaxy: str = None, tile: str = None, size: int = None, savemask: bool = False, savefig: bool = False,
                    maskstars: list = [], angsize: float = None, runDAOfinder: bool = False):
@@ -773,19 +773,15 @@ class Scubes(object):
 
         # draw subplot 3
         ax3 = plt.subplot(223, projection=wcs)
-        # draw gray scaled masked image
-        ax3.imshow(maincircmask, cmap='Greys_r',
-                   origin='lower', vmin=-0.1, vmax=3.5)
-        # draw large circle around the galaxy
-        circregion.plot(color='y', lw=1.5)
         # draw small circles around sources selected from SExtractor catalogue
         # mask sources using the size of the FWHM obtained by SExtractor
         # create a new mask to contain the sources and add a different flag to it
-        starsmask = np.zeros(fdata.shape)
+        starsmask = np.full(fdata.shape, 2, dtype=float)
         for n, sregion in enumerate(sewregions):
             sregion.plot(ax=ax3, color='g')
             if n not in maskstars:
                 mask = sregion.to_mask()
+                print(mask.data.shape, np.unique(mask.data))
                 if (min(mask.bbox.extent) < 0) or (max(mask.bbox.extent) > size):
                     print('[%s]' % datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), ' - ',
                           'Region is out of range for extent', mask.bbox.extent)
@@ -794,7 +790,14 @@ class Scubes(object):
                                slice(mask.bbox.ixmin, mask.bbox.ixmax))
                     print('[%s]' % datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), ' - ',
                           mask.bbox.extent, 'min:', min(mask.bbox.extent), _slices)
-                    starsmask[_slices] = 2
+                    starsmask[_slices] *= 1 - mask.data
+        # resulting mask (without masking the SN)
+        resultingmask = maincircmask + starsmask
+        maskeddata = fdata * (resultingmask > 0)
+        ax3.imshow(maskeddata, cmap='Greys_r',
+                   origin='lower', vmin=-0.1, vmax=3.5)
+        # draw large circle around the galaxy
+        circregion.plot(color='y', lw=1.5)
         # DAOfinder will be needed only in extreme cases of crowded fields
         if runDAOfinder:
             for dregion in daoregions:
@@ -806,7 +809,8 @@ class Scubes(object):
         ax4 = plt.subplot(224, projection=wcs)
         # resulting mask (without masking the SN)
         fitsmask = f.copy()
-        fitsmask[1].data = maincircmask + starsmask
+        fitsmask[1].data = resultingmask
+        print(np.unique(fitsmask[1].data))
         # draw gray scaled mask
         ax4.imshow(fitsmask[1].data, cmap='Greys_r', origin='lower')
         ax4.set_title('Mask')
@@ -995,7 +999,7 @@ class Scubes(object):
                     maskstars = []
                     while mask_sexstars:
                         q1 = input(
-                            'do you want to (UN)mask SExtractor stars? [y|r|n|q]: ')
+                            'Do you want to (UN)mask SExtractor stars? [y|r|n|q]: ')
                         if q1 == 'y':
                             newindx = input(
                                 'type (space separated) the stars numbers do you WANT TO KEEP: ')
@@ -1015,11 +1019,11 @@ class Scubes(object):
                             mask_sexstars = False
                         elif q1 == 'q':
                             Warning('Exiting!')
-                            return
+                            sys.exit()
                         elif q1 == '':
                             mask_sexstars = True
                         else:
-                            raise IOError('option not recognized')
+                            raise IOError('Option %s not recognized' % q1)
 
                     imagemask = self.calc_masks(galaxy=galaxy, tile=tile, size=size,
                                                 savemask=True, savefig=True,
