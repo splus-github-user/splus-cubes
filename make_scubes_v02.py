@@ -661,7 +661,7 @@ class Scubes(object):
                 iteraction += 1
 
         fmask = np.zeros(f[1].data.shape)
-        fmask[distance <= angsize] = 1
+        fmask[distance > angsize] = 1
         return circregion, fmask
 
     def calc_masks(self, galaxy: str = None, tile: str = None, size: int = None, savemask: bool = False, savefig: bool = False,
@@ -776,7 +776,7 @@ class Scubes(object):
         # draw small circles around sources selected from SExtractor catalogue
         # mask sources using the size of the FWHM obtained by SExtractor
         # create a new mask to contain the sources and add a different flag to it
-        starsmask = np.full(fdata.shape, 2, dtype=float)
+        starsmask = np.ones(fdata.shape)
         for n, sregion in enumerate(sewregions):
             sregion.plot(ax=ax3, color='g')
             if n not in maskstars:
@@ -792,8 +792,12 @@ class Scubes(object):
                           mask.bbox.extent, 'min:', min(mask.bbox.extent), _slices)
                     starsmask[_slices] *= 1 - mask.data
         # resulting mask (without masking the SN)
+        starsmask -= 1
+        starsmask *= -2
+        starsmask = abs(starsmask)
         resultingmask = maincircmask + starsmask
-        maskeddata = fdata * (resultingmask > 0)
+        maskeddata = np.where(resultingmask > 0, 0, fdata)
+        print(np.unique(maskeddata))
         ax3.imshow(maskeddata, cmap='Greys_r',
                    origin='lower', vmin=-0.1, vmax=3.5)
         # draw large circle around the galaxy
