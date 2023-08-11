@@ -693,16 +693,12 @@ class Scubes(object):
         centralPixCoords = sky2pix(galcoords, wcs)
 
         fdata = ddata.copy()
-        # constraints = ddata > 0  # abs(np.percentile(ddata, 2.3))
-        # fmask = np.zeros(ddata.shape)
-        # fmask[constraints] = 1
-        # fdata *= fmask
 
         # calculate big circle
         print('[%s]' % datetime.datetime.now().strftime(
             '%Y-%m-%dT%H:%M:%S'), ' - ', 'Getting galaxy circle...')
-        circregion, maskeddata = self.calc_main_circle(f=f, centralPixCoords=centralPixCoords, angsize=angsize,
-                                                       size=size, galaxy=galaxy, tile=tile)
+        circregion, maincircmask = self.calc_main_circle(f=f, centralPixCoords=centralPixCoords, angsize=angsize,
+                                                         size=size, galaxy=galaxy, tile=tile)
 
         print('[%s]' % datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), ' - ',
               'Running SExtractor to get photometry...')
@@ -778,12 +774,14 @@ class Scubes(object):
         # draw subplot 3
         ax3 = plt.subplot(223, projection=wcs)
         # draw gray scaled masked image
-        ax3.imshow(maskeddata, cmap='Greys_r',
+        ax3.imshow(maincircmask, cmap='Greys_r',
                    origin='lower', vmin=-0.1, vmax=3.5)
         # draw large circle around the galaxy
         circregion.plot(color='y', lw=1.5)
         # draw small circles around sources selected from SExtractor catalogue
         # mask sources using the size of the FWHM obtained by SExtractor
+        # create a new mask to contain the sources and add a different flag to it
+        starsmask = np.zeros(fdata.shape)
         for n, sregion in enumerate(sewregions):
             sregion.plot(ax=ax3, color='g')
             if n not in maskstars:
@@ -796,7 +794,7 @@ class Scubes(object):
                                slice(mask.bbox.ixmin, mask.bbox.ixmax))
                     print('[%s]' % datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'), ' - ',
                           mask.bbox.extent, 'min:', min(mask.bbox.extent), _slices)
-                    maskeddata[_slices] *= 1 - mask.data
+                    starsmask[_slices] = 2
         # DAOfinder will be needed only in extreme cases of crowded fields
         if runDAOfinder:
             for dregion in daoregions:
@@ -806,16 +804,9 @@ class Scubes(object):
         ax3.set_ylabel('Dec')
 
         ax4 = plt.subplot(224, projection=wcs)
-        # create the mask
+        # resulting mask (without masking the SN)
         fitsmask = f.copy()
-        fitsmask[1].data = np.zeros(maskeddata.shape)
-        # TODO: here is the problem, the mask is not created correctly
-        # using the mask to create a boolean mask dont allow the consideratn of the data values
-        # need to use the constraints from the beggining to properly define the bad reagions
-        # another thing that is not working correctly is the mask of the sources.
-        # They need to have a differente flag to diferentiate from the main circle
-        raise NotImplementedError('The mask is not being created correctly')
-        fitsmask[1].data[maskeddata > 0] = 1
+        fitsmask[1].data = maincircmask + starsmask
         # draw gray scaled mask
         ax4.imshow(fitsmask[1].data, cmap='Greys_r', origin='lower')
         ax4.set_title('Mask')
